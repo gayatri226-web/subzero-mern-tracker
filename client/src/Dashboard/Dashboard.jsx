@@ -1,17 +1,100 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import "./Dashboard.css";
-
+import axios from "axios";
+import { Bar } from "react-chartjs-2";
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Tooltip,
+  Legend,
+} from "chart.js";
 import Expense from "../Expense/Expense";
 import Income from "../Income/Income";
+import "./Dashboard.css";
+
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Tooltip,
+  Legend
+);
 
 export default function Dashboard() {
   const [activePage, setActivePage] = useState("dashboard");
+
+  const [totalIncome, setTotalIncome] = useState(0);
+  const [totalBurn, setTotalBurn] = useState(0);
+
   const navigate = useNavigate();
 
   const logout = () => {
     localStorage.removeItem("loggedIn");
     navigate("/login");
+  };
+
+  /* 🔑 Fetch income + expenses and calculate stats */
+  const fetchDashboardData = async () => {
+    try {
+      const [incomeRes, subsRes] = await Promise.all([
+        axios.get("http://localhost:5000/api/income"),
+        axios.get("http://localhost:5000/api/subs"),
+      ]);
+
+      const incomeTotal = incomeRes.data.reduce(
+        (sum, item) => sum + Number(item.amount),
+        0
+      );
+
+      const burnTotal = subsRes.data.reduce(
+        (sum, item) => sum + Number(item.amount),
+        0
+      );
+
+      setTotalIncome(incomeTotal);
+      setTotalBurn(burnTotal);
+    } catch (err) {
+      console.error("Dashboard fetch error", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
+
+  const netMargin = totalIncome - totalBurn;
+
+  /* 📊 GRAPH DATA */
+  const barData = {
+    labels: ["Total Income", "Auto-pay Burn", "Net Margin"],
+    datasets: [
+      {
+        label: "Amount (₹)",
+        data: [totalIncome, totalBurn, netMargin],
+        backgroundColor: [
+          "#22c55e", // green
+          "#ef4444", // red
+          netMargin >= 0 ? "#3b82f6" : "#f97316", // blue / orange
+        ],
+        borderRadius: 8,
+      },
+    ],
+  };
+
+  const barOptions = {
+    responsive: true,
+    plugins: {
+      legend: {
+        display: false,
+      },
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+      },
+    },
   };
 
   return (
@@ -50,38 +133,50 @@ export default function Dashboard() {
 
       {/* MAIN CONTENT */}
       <main className="dashboard-content">
-        {/* DASHBOARD HOME */}
         {activePage === "dashboard" && (
           <>
             <h1>Dashboard</h1>
             <p className="subtitle">
-              Overview of your finances and auto-pay burn
+              Real-time overview of income vs auto-pay burn
             </p>
 
+            {/* STATS */}
             <div className="stats-grid">
               <div className="stat-card">
                 <p>Total Income</p>
-                <h2>₹ —</h2>
+                <h2>₹{totalIncome}</h2>
               </div>
 
               <div className="stat-card">
                 <p>Auto-pay Burn</p>
-                <h2>₹ —</h2>
+                <h2>₹{totalBurn}</h2>
               </div>
 
-              <div className="stat-card">
+              <div
+                className={`stat-card ${
+                  netMargin < 0 ? "danger" : "success"
+                }`}
+              >
                 <p>Net Margin</p>
-                <h2>₹ —</h2>
+                <h2>₹{netMargin}</h2>
               </div>
+            </div>
+
+            {/* 📊 GRAPH */}
+            <div className="stat-card" style={{ marginTop: "32px" }}>
+              <h3>Financial Overview</h3>
+              <Bar data={barData} options={barOptions} />
             </div>
           </>
         )}
 
-        {/* INCOME PAGE */}
-        {activePage === "income" && <Income />}
+        {activePage === "income" && (
+          <Income onUpdate={fetchDashboardData} />
+        )}
 
-        {/* EXPENSE PAGE */}
-        {activePage === "expense" && <Expense />}
+        {activePage === "expense" && (
+          <Expense onUpdate={fetchDashboardData} />
+        )}
       </main>
     </div>
   );

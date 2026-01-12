@@ -18,37 +18,58 @@ export default function Expense() {
     amount: "",
     category: "Other",
   });
+  const [loading, setLoading] = useState(false);
 
-  /* 🔄 FETCH FROM YOUR EXISTING BACKEND */
+  /* 🔄 FETCH EXPENSES */
   const fetchExpenses = async () => {
-    const res = await axios.get("http://localhost:5000/api/subs");
-    setExpenses(res.data);
+    try {
+      const res = await axios.get("http://localhost:5000/api/subs");
+      setExpenses(res.data);
+    } catch (err) {
+      console.error("Fetch expenses error:", err.message);
+    }
   };
 
   useEffect(() => {
     fetchExpenses();
   }, []);
 
-  /* ➕ ADD EXPENSE (SAVES TO MONGODB) */
+  /* ➕ ADD EXPENSE */
   const addExpense = async () => {
     if (!form.name || !form.amount) return;
 
-    await axios.post("http://localhost:5000/api/subs", {
-      name: form.name,
-      amount: form.amount,
-    });
+    try {
+      setLoading(true);
 
-    setForm({ name: "", amount: "", category: "Other" });
-    fetchExpenses();
+      await axios.post("http://localhost:5000/api/subs", {
+        name: form.name,
+        amount: Number(form.amount),
+        category: form.category,
+      });
+
+      setForm({ name: "", amount: "", category: "Other" });
+      fetchExpenses();
+    } catch (err) {
+      console.error(
+        "Add expense error:",
+        err.response?.data || err.message
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   /* ❌ DELETE EXPENSE */
   const deleteExpense = async (id) => {
-    await axios.delete(`http://localhost:5000/api/subs/${id}`);
-    fetchExpenses();
+    try {
+      await axios.delete(`http://localhost:5000/api/subs/${id}`);
+      fetchExpenses();
+    } catch (err) {
+      console.error("Delete expense error:", err.message);
+    }
   };
 
-  /* 📊 CHART LOGIC (FRONTEND ONLY) */
+  /* 📊 CHART LOGIC */
   const categoryTotals = expenses.reduce((acc, curr) => {
     const category = curr.category || "Other";
     acc[category] = (acc[category] || 0) + Number(curr.amount);
@@ -74,9 +95,7 @@ export default function Expense() {
   return (
     <>
       <h1>Expense Tracking</h1>
-      <p className="subtitle">
-        Expenses stored using your existing backend
-      </p>
+      <p className="subtitle">Expenses stored securely</p>
 
       <div className="stats-grid">
         {/* ADD EXPENSE */}
@@ -116,8 +135,12 @@ export default function Expense() {
             <option>Other</option>
           </select>
 
-          <button className="login-button" onClick={addExpense}>
-            Add Expense
+          <button
+            className="login-button"
+            onClick={addExpense}
+            disabled={loading}
+          >
+            {loading ? "Adding..." : "Add Expense"}
           </button>
         </div>
 
@@ -133,37 +156,43 @@ export default function Expense() {
         </div>
       </div>
 
-      {/* LIST */}
+      {/* EXPENSE LIST */}
       <div className="stat-card" style={{ marginTop: "24px" }}>
         <h3>Expense List</h3>
 
-        {expenses.map((e) => (
-          <div
-            key={e._id}
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              marginTop: "12px",
-            }}
-          >
-            <span>{e.name}</span>
-            <span>
-              ₹{e.amount}
-              <button
-                onClick={() => deleteExpense(e._id)}
-                style={{
-                  marginLeft: "12px",
-                  color: "#ef4444",
-                  background: "none",
-                  border: "none",
-                  cursor: "pointer",
-                }}
-              >
-                ✕
-              </button>
-            </span>
-          </div>
-        ))}
+        {expenses.length === 0 ? (
+          <p className="subtitle">No expenses added</p>
+        ) : (
+          expenses.map((e) => (
+            <div
+              key={e._id}
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                marginTop: "12px",
+              }}
+            >
+              <span>
+                {e.name} ({e.category})
+              </span>
+              <span>
+                ₹{e.amount}
+                <button
+                  onClick={() => deleteExpense(e._id)}
+                  style={{
+                    marginLeft: "12px",
+                    color: "#ef4444",
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                  }}
+                >
+                  ✕
+                </button>
+              </span>
+            </div>
+          ))
+        )}
       </div>
     </>
   );
