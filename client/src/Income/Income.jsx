@@ -2,6 +2,9 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import "../Dashboard/Dashboard.css";
 
+const BASE_URL =
+  import.meta.env.VITE_API_URL || "https://subzero-expense-tracker-2.onrender.com";
+
 export default function Income() {
   const [income, setIncome] = useState([]);
   const [form, setForm] = useState({
@@ -9,10 +12,19 @@ export default function Income() {
     amount: "",
   });
 
+  // ✅ Check if env is working
+  useEffect(() => {
+    console.log("✅ API URL =", BASE_URL);
+  }, []);
+
   // Fetch income from MongoDB
   const fetchIncome = async () => {
-    const res = await axios.get("http://localhost:5000/api/income");
-    setIncome(res.data);
+    try {
+      const res = await axios.get(`${BASE_URL}/api/income`);
+      setIncome(res.data);
+    } catch (err) {
+      console.log("❌ Fetch income error:", err.message);
+    }
   };
 
   useEffect(() => {
@@ -23,26 +35,31 @@ export default function Income() {
   const addIncome = async () => {
     if (!form.source || !form.amount) return;
 
-    await axios.post("http://localhost:5000/api/income", {
-      source: form.source,
-      amount: Number(form.amount),
-    });
+    try {
+      await axios.post(`${BASE_URL}/api/income`, {
+        source: form.source,
+        amount: Number(form.amount),
+      });
 
-    setForm({ source: "", amount: "" });
-    fetchIncome();
+      setForm({ source: "", amount: "" });
+      fetchIncome();
+    } catch (err) {
+      console.log("❌ Add income error:", err.message);
+    }
   };
 
   // Delete income
   const deleteIncome = async (id) => {
-    await axios.delete(`http://localhost:5000/api/income/${id}`);
-    fetchIncome();
+    try {
+      await axios.delete(`${BASE_URL}/api/income/${id}`);
+      fetchIncome();
+    } catch (err) {
+      console.log("❌ Delete income error:", err.message);
+    }
   };
 
   // Total monthly income
-  const totalIncome = income.reduce(
-    (sum, i) => sum + Number(i.amount),
-    0
-  );
+  const totalIncome = income.reduce((sum, i) => sum + Number(i.amount), 0);
 
   return (
     <>
@@ -58,9 +75,7 @@ export default function Income() {
             className="login-input"
             placeholder="Source (Salary, Freelance)"
             value={form.source}
-            onChange={(e) =>
-              setForm({ ...form, source: e.target.value })
-            }
+            onChange={(e) => setForm({ ...form, source: e.target.value })}
           />
 
           <input
@@ -68,9 +83,7 @@ export default function Income() {
             type="number"
             placeholder="Amount"
             value={form.amount}
-            onChange={(e) =>
-              setForm({ ...form, amount: e.target.value })
-            }
+            onChange={(e) => setForm({ ...form, amount: e.target.value })}
           />
 
           <button className="login-button" onClick={addIncome}>

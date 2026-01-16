@@ -6,7 +6,8 @@ import "../Dashboard/Dashboard.css";
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
-const BASE_URL = import.meta.env.VITE_API_URL;
+const BASE_URL =
+  import.meta.env.VITE_API_URL || "https://subzero-expense-tracker-2.onrender.com";
 
 export default function Expense() {
   const [expenses, setExpenses] = useState([]);
@@ -17,13 +18,18 @@ export default function Expense() {
   });
   const [loading, setLoading] = useState(false);
 
+  // ✅ Check API URL
+  useEffect(() => {
+    console.log("✅ API URL =", BASE_URL);
+  }, []);
+
   /* 🔄 FETCH EXPENSES */
   const fetchExpenses = async () => {
     try {
       const res = await axios.get(`${BASE_URL}/api/subs`);
       setExpenses(res.data);
     } catch (err) {
-      console.error("Fetch expenses error:", err.message);
+      console.error("❌ Fetch expenses error:", err.message);
     }
   };
 
@@ -47,7 +53,7 @@ export default function Expense() {
       setForm({ name: "", amount: "", category: "Other" });
       fetchExpenses();
     } catch (err) {
-      console.error("Add expense error:", err.response?.data || err.message);
+      console.error("❌ Add expense error:", err.response?.data || err.message);
     } finally {
       setLoading(false);
     }
@@ -59,7 +65,7 @@ export default function Expense() {
       await axios.delete(`${BASE_URL}/api/subs/${id}`);
       fetchExpenses();
     } catch (err) {
-      console.error("Delete expense error:", err.message);
+      console.error("❌ Delete expense error:", err.message);
     }
   };
 
