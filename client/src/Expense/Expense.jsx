@@ -1,15 +1,12 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { Pie } from "react-chartjs-2";
-import {
-  Chart as ChartJS,
-  ArcElement,
-  Tooltip,
-  Legend,
-} from "chart.js";
+import { Chart as ChartJS, ArcElement, Tooltip, Legend } from "chart.js";
 import "../Dashboard/Dashboard.css";
 
 ChartJS.register(ArcElement, Tooltip, Legend);
+
+const BASE_URL = import.meta.env.VITE_API_URL;
 
 export default function Expense() {
   const [expenses, setExpenses] = useState([]);
@@ -23,7 +20,7 @@ export default function Expense() {
   /* 🔄 FETCH EXPENSES */
   const fetchExpenses = async () => {
     try {
-      const res = await axios.get("http://localhost:5000/api/subs");
+      const res = await axios.get(`${BASE_URL}/api/subs`);
       setExpenses(res.data);
     } catch (err) {
       console.error("Fetch expenses error:", err.message);
@@ -41,7 +38,7 @@ export default function Expense() {
     try {
       setLoading(true);
 
-      await axios.post("http://localhost:5000/api/subs", {
+      await axios.post(`${BASE_URL}/api/subs`, {
         name: form.name,
         amount: Number(form.amount),
         category: form.category,
@@ -50,10 +47,7 @@ export default function Expense() {
       setForm({ name: "", amount: "", category: "Other" });
       fetchExpenses();
     } catch (err) {
-      console.error(
-        "Add expense error:",
-        err.response?.data || err.message
-      );
+      console.error("Add expense error:", err.response?.data || err.message);
     } finally {
       setLoading(false);
     }
@@ -62,7 +56,7 @@ export default function Expense() {
   /* ❌ DELETE EXPENSE */
   const deleteExpense = async (id) => {
     try {
-      await axios.delete(`http://localhost:5000/api/subs/${id}`);
+      await axios.delete(`${BASE_URL}/api/subs/${id}`);
       fetchExpenses();
     } catch (err) {
       console.error("Delete expense error:", err.message);
@@ -81,13 +75,7 @@ export default function Expense() {
     datasets: [
       {
         data: Object.values(categoryTotals),
-        backgroundColor: [
-          "#ef4444",
-          "#22c55e",
-          "#3b82f6",
-          "#eab308",
-          "#a855f7",
-        ],
+        backgroundColor: ["#ef4444", "#22c55e", "#3b82f6", "#eab308", "#a855f7"],
       },
     ],
   };
@@ -106,9 +94,7 @@ export default function Expense() {
             className="login-input"
             placeholder="Expense name"
             value={form.name}
-            onChange={(e) =>
-              setForm({ ...form, name: e.target.value })
-            }
+            onChange={(e) => setForm({ ...form, name: e.target.value })}
           />
 
           <input
@@ -116,17 +102,13 @@ export default function Expense() {
             type="number"
             placeholder="Amount"
             value={form.amount}
-            onChange={(e) =>
-              setForm({ ...form, amount: e.target.value })
-            }
+            onChange={(e) => setForm({ ...form, amount: e.target.value })}
           />
 
           <select
             className="login-input"
             value={form.category}
-            onChange={(e) =>
-              setForm({ ...form, category: e.target.value })
-            }
+            onChange={(e) => setForm({ ...form, category: e.target.value })}
           >
             <option>Food</option>
             <option>Transport</option>
