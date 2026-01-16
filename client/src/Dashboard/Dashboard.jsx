@@ -14,13 +14,10 @@ import Expense from "../Expense/Expense";
 import Income from "../Income/Income";
 import "./Dashboard.css";
 
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Tooltip,
-  Legend
-);
+ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
+
+const BASE_URL =
+  import.meta.env.VITE_API_URL || "https://subzero-expense-tracker-2.onrender.com";
 
 export default function Dashboard() {
   const [activePage, setActivePage] = useState("dashboard");
@@ -39,8 +36,8 @@ export default function Dashboard() {
   const fetchDashboardData = async () => {
     try {
       const [incomeRes, subsRes] = await Promise.all([
-        axios.get("http://localhost:5000/api/income"),
-        axios.get("http://localhost:5000/api/subs"),
+        axios.get(`${BASE_URL}/api/income`),
+        axios.get(`${BASE_URL}/api/subs`),
       ]);
 
       const incomeTotal = incomeRes.data.reduce(
@@ -74,9 +71,9 @@ export default function Dashboard() {
         label: "Amount (₹)",
         data: [totalIncome, totalBurn, netMargin],
         backgroundColor: [
-          "#22c55e", // green
-          "#ef4444", // red
-          netMargin >= 0 ? "#3b82f6" : "#f97316", // blue / orange
+          "#22c55e",
+          "#ef4444",
+          netMargin >= 0 ? "#3b82f6" : "#f97316",
         ],
         borderRadius: 8,
       },
@@ -153,9 +150,7 @@ export default function Dashboard() {
               </div>
 
               <div
-                className={`stat-card ${
-                  netMargin < 0 ? "danger" : "success"
-                }`}
+                className={`stat-card ${netMargin < 0 ? "danger" : "success"}`}
               >
                 <p>Net Margin</p>
                 <h2>₹{netMargin}</h2>
@@ -170,13 +165,9 @@ export default function Dashboard() {
           </>
         )}
 
-        {activePage === "income" && (
-          <Income onUpdate={fetchDashboardData} />
-        )}
+        {activePage === "income" && <Income onUpdate={fetchDashboardData} />}
 
-        {activePage === "expense" && (
-          <Expense onUpdate={fetchDashboardData} />
-        )}
+        {activePage === "expense" && <Expense onUpdate={fetchDashboardData} />}
       </main>
     </div>
   );
