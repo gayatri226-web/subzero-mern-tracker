@@ -4,6 +4,8 @@ const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
 
+const auth = require("./middleware/auth"); // ✅ AUTH MIDDLEWARE
+
 const app = express();
 
 /* ===================== */
@@ -12,7 +14,7 @@ const app = express();
 
 app.use(
   cors({
-    origin: "*", // ✅ for now (later we can restrict to Vercel url)
+    origin: "*",
     methods: ["GET", "POST", "DELETE", "PUT"],
   })
 );
@@ -47,6 +49,11 @@ const IncomeSchema = new mongoose.Schema(
   {
     source: { type: String, required: true },
     amount: { type: Number, required: true },
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
   },
   { timestamps: true }
 );
@@ -62,6 +69,11 @@ const ExpenseSchema = new mongoose.Schema(
     name: { type: String, required: true },
     amount: { type: Number, required: true },
     category: { type: String, default: "Other" },
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
   },
   { timestamps: true }
 );
@@ -77,19 +89,27 @@ app.get("/test", (req, res) => {
   res.send("✅ SERVER WORKING");
 });
 
-// ✅ Income routes
-app.get("/api/income", async (req, res) => {
+/* ---------- INCOME ROUTES ---------- */
+
+// ✅ Get income (USER-SPECIFIC)
+app.get("/api/income", auth, async (req, res) => {
   try {
-    const data = await Income.find().sort({ createdAt: -1 });
+    const data = await Income.find({ user: req.user.id })
+      .sort({ createdAt: -1 });
     res.json(data);
   } catch (error) {
     res.status(500).json({ message: "Error fetching income", error });
   }
 });
 
-app.post("/api/income", async (req, res) => {
+// ✅ Add income (USER-SPECIFIC)
+app.post("/api/income", auth, async (req, res) => {
   try {
-    const income = new Income(req.body);
+    const income = new Income({
+      ...req.body,
+      user: req.user.id,
+    });
+
     await income.save();
     res.status(201).json(income);
   } catch (error) {
@@ -97,28 +117,40 @@ app.post("/api/income", async (req, res) => {
   }
 });
 
-app.delete("/api/income/:id", async (req, res) => {
+// ✅ Delete income (USER-SPECIFIC)
+app.delete("/api/income/:id", auth, async (req, res) => {
   try {
-    await Income.findByIdAndDelete(req.params.id);
+    await Income.findOneAndDelete({
+      _id: req.params.id,
+      user: req.user.id,
+    });
     res.json({ ok: true });
   } catch (error) {
     res.status(500).json({ message: "Error deleting income", error });
   }
 });
 
-// ✅ Expense routes
-app.get("/api/subs", async (req, res) => {
+/* ---------- EXPENSE ROUTES ---------- */
+
+// ✅ Get expenses (USER-SPECIFIC)
+app.get("/api/subs", auth, async (req, res) => {
   try {
-    const expenses = await Expense.find().sort({ createdAt: -1 });
+    const expenses = await Expense.find({ user: req.user.id })
+      .sort({ createdAt: -1 });
     res.json(expenses);
   } catch (error) {
     res.status(500).json({ message: "Error fetching expenses", error });
   }
 });
 
-app.post("/api/subs", async (req, res) => {
+// ✅ Add expense (USER-SPECIFIC)
+app.post("/api/subs", auth, async (req, res) => {
   try {
-    const expense = new Expense(req.body);
+    const expense = new Expense({
+      ...req.body,
+      user: req.user.id,
+    });
+
     await expense.save();
     res.status(201).json(expense);
   } catch (error) {
@@ -126,9 +158,13 @@ app.post("/api/subs", async (req, res) => {
   }
 });
 
-app.delete("/api/subs/:id", async (req, res) => {
+// ✅ Delete expense (USER-SPECIFIC)
+app.delete("/api/subs/:id", auth, async (req, res) => {
   try {
-    await Expense.findByIdAndDelete(req.params.id);
+    await Expense.findOneAndDelete({
+      _id: req.params.id,
+      user: req.user.id,
+    });
     res.json({ ok: true });
   } catch (error) {
     res.status(500).json({ message: "Error deleting expense", error });
